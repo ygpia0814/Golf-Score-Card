@@ -188,6 +188,17 @@
         <label>Bottom box opacity — <span id="subOpacityVal">55</span>%</label>
         <input type="range" id="subOpacity" min="0" max="100" value="55" style="width:100%;accent-color:#7dd3e8">
       </div>
+      <div class="ctrl-row full">
+        <label>Score label</label>
+        <select id="scoreLabel">
+          <option value="none">None</option>
+          <option value="FOR EAGLE">For Eagle</option>
+          <option value="FOR BIRDIE">For Birdie</option>
+          <option value="FOR PAR">For Par</option>
+          <option value="FOR BOGEY">For Bogey</option>
+          <option value="FOR DOUBLE BOGEY">For Double Bogey</option>
+        </select>
+      </div>
     </div>
 
     <div class="preview-wrap">
@@ -361,12 +372,21 @@
       const lastDotCX  = subOffsetX + SUB_W - HPAD - cirR;
       const CARD_W     = TOP_W - BADGE_W;
 
+      // ── Score label box ──
+      const scoreLabelTxt = document.getElementById('scoreLabel').value;
+      const hasLabel      = scoreLabelTxt !== 'none' && scoreLabelTxt !== '';
+      const LABEL_H       = 22;
+      const LABEL_FONT    = 'bold 13px "Barlow Condensed",Impact,sans-serif';
+      const LABEL_SHIFT   = 10; // px shift left from right edge of sub box
+
+      const totalH = TOP_H + SUB_H + (hasLabel ? LABEL_H : 0);
+
       canvas.width  = W * 2;
-      canvas.height = (TOP_H + SUB_H) * 2;
+      canvas.height = totalH * 2;
       canvas.style.width  = W + 'px';
-      canvas.style.height = (TOP_H + SUB_H) + 'px';
+      canvas.style.height = totalH + 'px';
       ctx.setTransform(1,0,0,1,0,0); ctx.scale(2,2);
-      ctx.clearRect(0, 0, W, TOP_H + SUB_H);
+      ctx.clearRect(0, 0, W, totalH);
 
       // 1. Full accent backing — top strip + badge bg
       ctx.save(); ctx.globalAlpha = topOpacity;
@@ -436,10 +456,29 @@
         const dy     = subY;
         const active = i === strokes;
         if (active) {
-          ctx.strokeStyle = onBg; ctx.lineWidth = 1.5;
+          ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.arc(dx, dy, cirR, 0, Math.PI*2); ctx.stroke();
         }
         drawCentredOnPoint(String(i), dx, dy, FONT_DOTS, onBg);
+      }
+
+      // ── Score label box — flush below sub box, shifted 10px left ──
+      if (hasLabel) {
+        ctx.font = LABEL_FONT;
+        const lw = ctx.measureText(scoreLabelTxt).width + 28; // text + padding
+        const lx = (subOffsetX + SUB_W) - lw - LABEL_SHIFT;  // right-aligned then shift left
+        const ly = TOP_H + SUB_H;                             // flush, no gap
+
+        ctx.fillStyle = accent;
+        rrC(ctx, lx, ly, lw, LABEL_H, 0, 0, 0, 0);
+        ctx.fill();
+
+        // text — dark on accent
+        ctx.fillStyle    = lum(accent) > 0.45 ? '#000' : '#fff';
+        ctx.font         = LABEL_FONT;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(scoreLabelTxt, lx + lw / 2, ly + LABEL_H / 2);
       }
     }
 
@@ -495,8 +534,8 @@
         document.getElementById('bgColor').value
       );
       const ec = document.createElement('canvas');
-      ec.width  = W * 2;
-      ec.height = (TOP_H + SUB_H) * 2;
+      ec.width  = canvas.width;
+      ec.height = canvas.height;
       const et  = ec.getContext('2d');
       if (!transparent) {
         et.fillStyle = document.getElementById('bgColor').value;
