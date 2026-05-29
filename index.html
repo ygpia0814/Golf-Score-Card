@@ -180,6 +180,14 @@
           <span class="color-label">Main card color</span>
         </div>
       </div>
+      <div class="ctrl-row full">
+        <label>Top box opacity — <span id="topOpacityVal">100</span>%</label>
+        <input type="range" id="topOpacity" min="0" max="100" value="100" style="width:100%;accent-color:#7dd3e8">
+      </div>
+      <div class="ctrl-row full">
+        <label>Bottom box opacity — <span id="subOpacityVal">55</span>%</label>
+        <input type="range" id="subOpacity" min="0" max="100" value="55" style="width:100%;accent-color:#7dd3e8">
+      </div>
     </div>
 
     <div class="preview-wrap">
@@ -321,6 +329,8 @@
       const score   = document.getElementById('overallScore').value.trim() || 'E';
       const accent  = document.getElementById('accentColor').value;
       const bg      = document.getElementById('bgColor').value;
+      const topOpacity = parseInt(document.getElementById('topOpacity').value) / 100;
+      const subOpacity = parseInt(document.getElementById('subOpacity').value) / 100;
 
       const onAccent = lum(accent) > 0.45 ? '#000' : '#fff';
       const onBg     = lum(bg)     > 0.45 ? '#111' : '#fff';
@@ -359,22 +369,25 @@
       ctx.clearRect(0, 0, W, TOP_H + SUB_H);
 
       // 1. Full accent backing — top strip + badge bg
+      ctx.save(); ctx.globalAlpha = topOpacity;
       ctx.fillStyle = accent;
       rrC(ctx, 0, 0, TOP_W, TOP_H, R, R, R, R);
-      ctx.fill();
+      ctx.fill(); ctx.restore();
 
       // 2. Black card body — inset from top by STRIP_H
+      ctx.save(); ctx.globalAlpha = topOpacity;
       ctx.fillStyle = bg;
       rrC(ctx, 0, STRIP_H, CARD_W, TOP_H - STRIP_H, R, 0, R, R);
-      ctx.fill();
+      ctx.fill(); ctx.restore();
 
       // 3. Accent badge — fixed width, flat left, rounded right
+      ctx.save(); ctx.globalAlpha = topOpacity;
       ctx.fillStyle = accent;
       rrC(ctx, CARD_W, 0, BADGE_W, TOP_H, 0, R, R, 0);
-      ctx.fill();
+      ctx.fill(); ctx.restore();
 
-      // 4. Sub box — smaller than top, centred, flat top, rounded bottom, 55% opacity
-      ctx.save(); ctx.globalAlpha = 0.55; ctx.fillStyle = bg;
+      // 4. Sub box — smaller than top, centred, flat top, rounded bottom, user-controlled opacity
+      ctx.save(); ctx.globalAlpha = subOpacity; ctx.fillStyle = bg;
       rrC(ctx, subOffsetX, TOP_H, SUB_W, SUB_H, 0, 0, R, R);
       ctx.fill(); ctx.restore();
 
@@ -497,6 +510,12 @@
     }
 
     document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', render));
+    document.getElementById('topOpacity').addEventListener('input', e => {
+      document.getElementById('topOpacityVal').textContent = e.target.value;
+    });
+    document.getElementById('subOpacity').addEventListener('input', e => {
+      document.getElementById('subOpacityVal').textContent = e.target.value;
+    });
     document.fonts.ready.then(() => { render(); renderThemeSwatches(); });
   </script>
 </body>
