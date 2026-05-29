@@ -78,6 +78,60 @@
     button:hover { background: rgba(255,255,255,0.15); }
     button.primary { background: #fff; color: #111; border-color: #fff; }
     button.primary:hover { background: #e0e0e0; }
+
+    /* ── Color history ── */
+    .theme-history {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .theme-history-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: rgba(255,255,255,0.4);
+    }
+    .theme-swatches {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .theme-swatch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .theme-swatch:hover {
+      border-color: rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.12);
+    }
+    .swatch-dots {
+      display: flex;
+      gap: 4px;
+    }
+    .swatch-dot {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.2);
+    }
+    .swatch-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.55);
+      font-family: 'Roboto', sans-serif;
+    }
+    .theme-empty {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -138,6 +192,13 @@
     <div class="btn-row">
       <button class="primary" onclick="exportPNG(true)">⬇ Export PNG (transparent bg)</button>
       <button onclick="exportPNG(false)">⬇ Export PNG (with bg)</button>
+    </div>
+
+    <div class="theme-history">
+      <div class="theme-history-label">Recent color themes (click to apply)</div>
+      <div class="theme-swatches" id="themeSwatches">
+        <span class="theme-empty">No saved themes yet — export a PNG to save the current theme.</span>
+      </div>
     </div>
   </div>
 
@@ -369,7 +430,57 @@
       }
     }
 
+    // ── Color theme history (saves up to 3 themes used at export) ──
+    const THEME_KEY = 'scorecard_themes';
+
+    function loadThemes() {
+      try { return JSON.parse(localStorage.getItem(THEME_KEY) || '[]'); }
+      catch(e) { return []; }
+    }
+
+    function saveTheme(accent, bg) {
+      let themes = loadThemes();
+      // Don't save duplicate of the most recent
+      if (themes.length > 0 && themes[0].accent === accent && themes[0].bg === bg) return;
+      // Remove existing duplicate anywhere in list
+      themes = themes.filter(t => !(t.accent === accent && t.bg === bg));
+      // Prepend new theme, keep max 3
+      themes.unshift({ accent, bg });
+      themes = themes.slice(0, 3);
+      localStorage.setItem(THEME_KEY, JSON.stringify(themes));
+      renderThemeSwatches();
+    }
+
+    function applyTheme(accent, bg) {
+      document.getElementById('accentColor').value = accent;
+      document.getElementById('bgColor').value = bg;
+      render();
+    }
+
+    function renderThemeSwatches() {
+      const container = document.getElementById('themeSwatches');
+      const themes    = loadThemes();
+      if (themes.length === 0) {
+        container.innerHTML = '<span class="theme-empty">No saved themes yet — export a PNG to save the current theme.</span>';
+        return;
+      }
+      container.innerHTML = themes.map((t, i) => `
+        <button class="theme-swatch" onclick="applyTheme('${t.accent}','${t.bg}')" title="Apply theme ${i+1}">
+          <div class="swatch-dots">
+            <div class="swatch-dot" style="background:${t.bg}"></div>
+            <div class="swatch-dot" style="background:${t.accent}"></div>
+          </div>
+          <span class="swatch-text">Theme ${i+1}</span>
+        </button>
+      `).join('');
+    }
+
     function exportPNG(transparent) {
+      // Save current color theme to history
+      saveTheme(
+        document.getElementById('accentColor').value,
+        document.getElementById('bgColor').value
+      );
       const ec = document.createElement('canvas');
       ec.width  = W * 2;
       ec.height = (TOP_H + SUB_H) * 2;
@@ -386,7 +497,7 @@
     }
 
     document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', render));
-    document.fonts.ready.then(() => render());
+    document.fonts.ready.then(() => { render(); renderThemeSwatches(); });
   </script>
 </body>
 </html>
